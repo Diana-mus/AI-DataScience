@@ -178,7 +178,7 @@ for neuer_zustand in erzeuge_neue_zustaende(start_state):
 print("Hamming Start:", hamming(start_state, goal_state))
 print("Hamming beispiel :", hamming(Beispiel, goal_state))
 print("Manhattan Start:", manhattan(start_state, goal_state))
-print("Manhattan beispiel:", manhattan(Beispiel, goal_state))
+print("Manhattan beispielLL:", manhattan(Beispiel, goal_state))
 
 for name, heuristik in [("Hamming", hamming), ("Manhattan", manhattan)]:
     weg, anzahl_knoten = a_stern(start_state, goal_state, heuristik)
@@ -188,3 +188,4 @@ for name, heuristik in [("Hamming", hamming), ("Manhattan", manhattan)]:
     for state in weg:
         print_puzzle(state)
         print()
+
