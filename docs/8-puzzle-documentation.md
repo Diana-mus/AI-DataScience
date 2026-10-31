@@ -4,6 +4,64 @@
 
 ## 2. Software architecture
 
+The program is split into four modules. Each module has one job, and the dependencies only go in one direction:
+
+- `experiments.py` runs the measurements and uses all other modules.
+- `astar.py` contains the search. It only uses `puzzle.py` to get the next states.
+- `puzzle.py` and `heuristic.py` contain the puzzle rules and the heuristics. They do not depend on any other module.
+
+The heuristic is not imported by `astar.py`. Instead it is passed to the `AStar` class as a parameter, so A* works with any heuristic of the form `heuristic(state, goal)`.
+
+```mermaid
+%%{init: {"flowchart": {"curve": "stepAfter"}}}%%
+classDiagram
+    direction TB
+    class experiments {
+        <<module>>
+        +run_experiment(states, heuristic) list
+        +summarize(results, key) tuple
+        +print_results(name, results)
+    }
+    class AStar {
+        +start
+        +goal
+        +heuristic
+        +astar_search() tuple
+        +get_path_to_goal(node) list
+    }
+    class Node {
+        +state
+        +g
+        +h
+        +f
+        +parent
+    }
+    class puzzle {
+        <<module>>
+        +GOAL_STATE
+        +get_neighbors(state) list
+        +is_solvable(state, goal) bool
+        +generate_random_puzzle(moves, goal) state
+    }
+    class heuristic {
+        <<module>>
+        +hamming(state, goal) int
+        +manhattan(state, goal) int
+    }
+    experiments ..> AStar : uses
+    AStar ..> Node : creates
+    AStar ..> puzzle : uses
+    AStar ..> heuristic : calls
+
+    style Node fill:#E1F5EE,stroke:#0F6E56,color:#04342C
+    style AStar fill:#E1F5EE,stroke:#0F6E56,color:#04342C
+    style puzzle fill:#EEEDFE,stroke:#534AB7,color:#26215C
+    style heuristic fill:#EEEDFE,stroke:#534AB7,color:#26215C
+    style experiments fill:#FAEEDA,stroke:#854F0B,color:#412402
+```
+
+
+
 ## 3. Modules and interfaces
 
 ### puzzle.py
@@ -61,8 +119,65 @@ Manhattan Distance provides a more informative estimate than Hamming Distance be
 Both functions examine the nine positions of the puzzle. Therefore, their time complexity is O(1) for the fixed-size 8-Puzzle.
 
 ### astar.py
+This module contains the A* search. It looks for the shortest way from a start state to the goal state.
+
+A* always continues with the node that looks cheapest. For every node it calculates **f(n) = g(n) + h(n)**: g(n) is the number of moves already made, h(n) is the estimate from the heuristic for the moves still missing.
+
+**Main classes and functions:**
+
+* `Node`: One node in the search tree. Stores the state, g, h, f and the parent node.
+* `AStar(start_state, goal_state, heuristic)`: Holds the start state, the goal state and the heuristic to use.
+* `find_lowest_cost_node(nodes_to_explore)`: Takes the node with the lowest f out of the open list.
+* `astar_search()`: Runs the search and returns the path, the number of expanded nodes and the number of created nodes.
+* `get_path_to_goal(node)`: Goes back from the goal to the start using the parent nodes.
+* `print_puzzle(state)`: Prints a state as a 3×3 grid.
+
+**The search loop:**
+
+```python
+while open_list:
+    current = find_lowest_cost_node(open_list)
+
+    if current.state == self.goal:
+        return self.get_path_to_goal(current), nodes_expanded, nodes_created
+
+    if current.state in closed_list:
+        continue
+    closed_list.add(current.state)
+    nodes_expanded += 1
+
+    for new_state in get_neighbors(current.state):
+        if new_state not in closed_list:
+            g = current.g + 1
+            h = self.heuristic(new_state, self.goal)
+            open_list.append(Node(new_state, g, h, current))
+            nodes_created += 1
+```
+
+In every round we take the node with the lowest f. If it is the goal, we are done. If we already explored this state, we skip it. Otherwise we add it to the closed list and create a new node for every neighbor, one move further than its parent.
+
+**Computational complexity:**
+
+The more moves a puzzle needs, the more nodes A* creates. In the worst case this grows exponentially, O(b^d), where b is the number of possible moves per state and d is the number of moves in the solution.
+
+Our open list is a normal list, so we have to go through the whole list every time we look for the lowest f. Because of that, twice as many nodes means about four times the runtime, O(N²).
 
 ### experiments.py
+This module compares Hamming and Manhattan. It solves the same 100 random puzzles with both heuristics and prints the results.
+
+We use a fixed random seed, so every run creates the same puzzles and the results can be reproduced.
+
+**Main functions:**
+
+* `run_experiment(states, heuristic_function)`: Solves every puzzle with A* and saves the number of moves, expanded nodes, created nodes and the runtime.
+* `summarize(results, key)`: Calculates mean, variance and standard deviation for one value.
+* `print_results(name, results)`: Prints the results for one heuristic.
+
+The runtime is measured with `time.perf_counter()` right before and after `astar_search()`, so only the search itself is measured. Both heuristics get exactly the same 100 puzzles, so the comparison is fair.
+
+**Computational complexity:**
+
+Almost all of the runtime comes from the 200 A* searches. Calculating the statistics at the end is fast in comparison.
 
 ## 4. Design decisions
 
@@ -100,6 +215,28 @@ Manhattan Distance is generally more informative because it considers the distan
 Using both heuristics allows us to compare their influence on the search algorithm's runtime and memory requirements.
 
 ### A* and experiments
+
+#### A* as a Class
+
+We implemented A* as a class `AStar` that gets the start state, the goal state and the heuristic. The heuristic is passed as a parameter instead of being imported. This way the same search works with Hamming and Manhattan without changing the A* code.
+
+#### Open List and Closed List
+
+The open list is a normal Python list. We chose it because it is easy to understand and to debug. The downside is that finding the node with the lowest f takes longer the bigger the list gets (see Possible improvements).
+
+The closed list is a set, because checking whether a state was already explored is very fast in a set. This works because the puzzle states are tuples (see Puzzle Representation).
+
+#### Parent Links
+
+Every node stores the node it was created from. When the goal is found, we follow these links back to the start to get the full solution path.
+
+#### Counting Nodes
+
+We count both expanded nodes and created nodes. The task asks for the "number of tree nodes", and with both values we cover both possible meanings.
+
+#### Fair Comparison
+
+Both heuristics solve exactly the same 100 puzzles. We use a fixed random seed, so every run creates the same puzzles and the results can be checked again. The runtime is measured only around the search itself with `time.perf_counter()`.
 
 ## 5. Discussion and conclusions
 
