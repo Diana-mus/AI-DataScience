@@ -2,6 +2,21 @@
 
 ## 1. Task description
 
+The 8-puzzle is a 3x3 board with eight numbered tiles and one empty field. A tile next to the empty field can slide into it. The goal is to reach this state with as few moves as possible:
+
+```
+1 2 3
+4 5 6
+7 8 _
+```
+
+Our task was to solve the puzzle in Python with the A* search algorithm and to compare two heuristics:
+
+- **Hamming**: the number of tiles that are in the wrong place
+- **Manhattan**: the sum of the distances of all tiles to their goal position
+
+For each heuristic we solved 100 random start states. For every run we measured the memory effort (number of nodes in the search tree) and the runtime. Then we calculated the mean, variance and standard deviation of these values.
+
 ## 2. Software architecture
 
 The program is split into four modules. Each module has one job, and the dependencies only go in one direction:
@@ -240,8 +255,29 @@ Both heuristics solve exactly the same 100 puzzles. We use a fixed random seed, 
 
 ## 5. Discussion and conclusions
 
-### Experience
+All runs used the same 100 start states (`RANDOM_SEED = 100`). Memory is measured as the number of nodes, as the task asked.What we see:
 
-### Results
+| Measure                | Heuristic |           Mean |            Variance | Std. deviation |
+| ---------------------- | --------- | -------------: | ------------------: | -------------: |
+| Solution length        | Hamming   |    20.94 moves |        10.78 moves² |     3.28 moves |
+|                        | Manhattan |    20.94 moves |        10.78 moves² |     3.28 moves |
+| Expanded nodes         | Hamming   | 10472.22 nodes | 133050037.37 nodes² | 11534.73 nodes |
+|                        | Manhattan |  1049.49 nodes |   1071067.63 nodes² |  1034.92 nodes |
+| Created nodes (memory) | Hamming   | 16899.59 nodes | 333454563.25 nodes² | 18260.74 nodes |
+|                        | Manhattan |  1696.90 nodes |   2744547.75 nodes² |  1656.67 nodes |
+| Runtime                | Hamming   |       3.6065 s |            41.64 s² |         6.45 s |
+|                        | Manhattan |       0.0451 s |           0.0047 s² |       0.0688 s |
 
-### Possible improvements
+- **Both heuristics find the same solution length.** Both are admissible, so A* always finds the optimal path.
+- **Manhattan needs about 10 times fewer nodes.** It gives a better estimate, because it also counts how far a tile is away and not only whether it is wrong.
+- **Manhattan is about 80 times faster.** This is more than the node difference, because our open list is a plain list. Finding the lowest f takes O(n), so bigger open lists slow down every step.
+- **Hamming has a very high variance.** Easy puzzles are fast, but some hard ones need tens of thousands of nodes and many seconds.
+
+**Conclusion:** Manhattan is clearly the better heuristic for the 8-puzzle. It finds the same optimal solutions but uses much less memory and time.
+
+### Possible Improvements
+
+- **Priority queue (heapq):** Getting the lowest f node would take O(log n) instead of O(n). This would make the search much faster, especially with Hamming.
+- **Duplicates in the open list:** The same state can be in the open list more than once. Checking for this would save memory.
+- **Better heuristic:** Linear Conflict adds extra moves to Manhattan when two tiles in the same row or column block each other. It is still admissible.
+- **Real memory measurement:** Besides the node count, we could measure memory in bytes, for example with `tracemalloc`.
