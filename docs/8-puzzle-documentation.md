@@ -1,5 +1,5 @@
 # 8-Puzzle: A* Search with Hamming and Manhattan
-**Goup members:** Diana Mustafa, Ibrahim Hussein, Mert Aydin
+**Group members:** Diana Mustafa, Ibrahim Hussein, Mert Aydin
 
 ## 1. Task description
 

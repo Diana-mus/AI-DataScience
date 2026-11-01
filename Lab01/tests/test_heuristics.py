@@ -19,8 +19,8 @@ HAMMING_ONE_MOVE = 1
 MANHATTAN_ONE_MOVE = 1
 HAMMING_SLIDES_EXAMPLE = 6
 MANHATTAN_SLIDES_EXAMPLE = 14
-HAMMING_FAR_TILE = 2      # only 2 tiles are misplaced ...
-MANHATTAN_FAR_TILE = 6    # ... but each is 3 steps away
+HAMMING_FAR_TILE = 3   # only 3 tiles are misplaced ...
+MANHATTAN_FAR_TILE = 8    # ... but they are far away
 
 # Real number of moves of the shortest solution (state, optimal moves)
 OPTIMAL_SOLUTIONS = [
