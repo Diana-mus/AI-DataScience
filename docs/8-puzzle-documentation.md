@@ -197,6 +197,7 @@ Almost all of the runtime comes from the 200 A* searches. Calculating the statis
 ## 4. Design decisions
 
 ### puzzle.py and heuristic.py
+
 ### Puzzle Representation
 
 We chose to represent the puzzle using tuples of tuples because tuples are immutable and hashable.
@@ -231,6 +232,8 @@ Using both heuristics allows us to compare their influence on the search algorit
 
 ### A* and experiments
 
+---
+
 #### A* as a Class
 
 We implemented A* as a class `AStar` that gets the start state, the goal state and the heuristic. The heuristic is passed as a parameter instead of being imported. This way the same search works with Hamming and Manhattan without changing the A* code.
@@ -255,7 +258,19 @@ Both heuristics solve exactly the same 100 puzzles. We use a fixed random seed, 
 
 ## 5. Discussion and conclusions
 
-All runs used the same 100 start states (`RANDOM_SEED = 100`). Memory is measured as the number of nodes, as the task asked.What we see:
+### Experience
+
+We split the project into modules, so everyone could work on their own part. We used Git with feature branches and pull requests, which helped us avoid overwriting each other's code. The hardest part was putting the code together, because the module interfaces had to match exactly (for example, every heuristic must be callable as `heuristic(state, goal)`).
+
+Some things we learned along the way:
+
+- States have to be tuples, not lists, because lists cannot be stored in a set (the closed list).
+- Not every random puzzle is solvable. Because we generate puzzles with random moves from the goal state, every start state is solvable.
+- With a plain list as the open list, some hard puzzles take very long with Hamming. With one seed, a single run took more than 30 minutes.
+
+### Results
+
+All runs used the same 100 start states (`RANDOM_SEED = 100`). Memory is measured as the number of nodes, as the task asked. What we see:
 
 | Measure                | Heuristic |           Mean |            Variance | Std. deviation |
 | ---------------------- | --------- | -------------: | ------------------: | -------------: |
@@ -280,4 +295,3 @@ All runs used the same 100 start states (`RANDOM_SEED = 100`). Memory is measure
 - **Priority queue (heapq):** Getting the lowest f node would take O(log n) instead of O(n). This would make the search much faster, especially with Hamming.
 - **Duplicates in the open list:** The same state can be in the open list more than once. Checking for this would save memory.
 - **Better heuristic:** Linear Conflict adds extra moves to Manhattan when two tiles in the same row or column block each other. It is still admissible.
-- **Real memory measurement:** Besides the node count, we could measure memory in bytes, for example with `tracemalloc`.
